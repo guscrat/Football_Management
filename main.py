@@ -1,5 +1,5 @@
 from src.ConnectDB import ConnectDB
-from src.request_api import ApiJogosConnect
+from RequestAPI import ApiJogosConnect
 
 if __name__ == '__main__':
     connectiondb = ConnectDB(db_name='futebol.db')
