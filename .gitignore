@@ -1,5 +1,3 @@
 env/
 __pycache__/
-others/gpt*
-others/test.py
-others/callbackapi.txt
+others/
