@@ -12,7 +12,6 @@ class ApiJogosConnect:
         try:
             url = f"{self.base_url}fixtures?live=all"
             response = requests.get(url, headers=self.headers)
-            print(response)
             response.raise_for_status()
             dados = response.json()
 

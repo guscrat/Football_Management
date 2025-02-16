@@ -1,5 +1,5 @@
 from src.ConnectDB import ConnectDB
-from RequestAPI import ApiJogosConnect
+from src.RequestAPI import ApiJogosConnect
 
 if __name__ == '__main__':
     connectiondb = ConnectDB(db_name='futebol.db')
@@ -12,5 +12,6 @@ if __name__ == '__main__':
     )
 
     retorno_api: dict = connection_api.retorna_response_api_jogos()
-
     connectiondb.coletar_jogos_ao_vivo(retorno_api)
+    connectiondb.fechar_conexao()
+    

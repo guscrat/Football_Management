@@ -14,50 +14,159 @@ class ConnectDB:
         Return:
             arquivo.db
         '''
+
         self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS jogos(
-            id INTEGER PRIMARY KEY,
-            liga TEXT,
-            time_casa TEXT,
-            time_fora TEXT,
-            placar TEXT,
-            status TEXT,
-            ultima_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            CREATE TABLE IF NOT EXISTS leagues (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                country TEXT,
+                season INTEGER
+            )
+        ''')
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS teams (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                logo TEXT
+            )
+        ''')
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS fixtures (
+                id INTEGER PRIMARY KEY,
+                league_id INTEGER,
+                home_team_id INTEGER,
+                away_team_id INTEGER,
+                venue TEXT,
+                status TEXT,
+                elapsed INTEGER,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (league_id) REFERENCES leagues(id),
+                FOREIGN KEY (home_team_id) REFERENCES teams(id),
+                FOREIGN KEY (away_team_id) REFERENCES teams(id)
+            )
+        ''')
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS goals (
+                fixture_id INTEGER,
+                home INTEGER,
+                away INTEGER,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (fixture_id, timestamp),
+                FOREIGN KEY (fixture_id) REFERENCES fixtures(id)
+            )
+        ''')
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS events (
+                fixture_id INTEGER,
+                time INTEGER,
+                team_id INTEGER,
+                player TEXT,
+                type TEXT,
+                detail TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (fixture_id) REFERENCES fixtures(id),
+                FOREIGN KEY (team_id) REFERENCES teams(id)
             )
         ''')
         self.conn.commit()
 
     def coletar_jogos_ao_vivo(self, json_jogos):
-        if "response" in json_jogos and isinstance(json_jogos["response"], list):
-            for jogo in json_jogos["response"]:
-                liga = (
-                    jogo.get("league", {}).get("name", "Desconhecido")
-                    )
-                time_casa = (
-                    jogo.get("teams", {}).get("home", {}).get("name", "Desconhecido")
-                )
-                time_fora = (
-                    jogo.get("teams", {}).get("away", {}).get("name", "Desconhecido")
-                    )
-                placar = (
-                    f"{jogo.get('goals', {}).get('home', 0)} - {jogo.get('goals', {}).get('away', 0)}"
-                    )
-                status = (
-                    jogo.get("fixture", {}).get("status", {}).get("long", "Desconhecido")
-                    )
-
-                self.insere_dados_coletados_no_bd(
-                    liga, time_casa, time_fora, placar, status
-                    )
-
-    def insere_dados_coletados_no_bd(
-            self, liga, time_casa, time_fora, placar, status
-            ):
         try:
-            self.cursor.execute("""
-                INSERT INTO jogos (liga, time_casa, time_fora, placar, status)
-                VALUES (?, ?, ?, ?, ?)
-            """, (liga, time_casa, time_fora, placar, status))
+            if "response" in json_jogos and isinstance(json_jogos["response"], list):
+                for match in json_jogos['response']:
+                    
+                    league = match['league']
+                    teams = match['teams']
+                    fixture = match['fixture']
+                    goals = match['goals']
+                    events = match.get('events', [])
+
+                    #  Leagues
+                    self.cursor.execute("""
+                        INSERT OR IGNORE INTO leagues VALUES (?, ?, ?, ?)""",
+                        (
+                            league['id'],
+                            league['name'],
+                            league['country'],
+                            league['season']
+                        )
+                    )
+
+                    #  Teams
+                    for team_key in ('home', 'away'):
+                        team = teams[team_key]
+                        self.cursor.execute("""
+                            INSERT OR IGNORE INTO teams VALUES (?, ?, ?)""",
+                            (
+                                team['id'],
+                                team['name'],
+                                team['logo']
+                            )
+                        )
+
+                    #  Fixture
+                    self.cursor.execute("""
+                        INSERT OR IGNORE INTO fixtures (
+                                        id,
+                                        league_id,
+                                        home_team_id,
+                                        away_team_id,
+                                        venue,
+                                        status,
+                                        elapsed
+                                        ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            fixture['id'],
+                            league['id'],
+                            teams['home']['id'],
+                            teams['away']['id'],
+                            fixture['venue']['name'],
+                            fixture['status']['long'],
+                            fixture['status']['elapsed']
+                        )
+                    )
+
+                    #  Goals
+                    self.cursor.execute("""
+                        INSERT OR IGNORE INTO goals (fixture_id, home, away) VALUES (?, ?, ?)
+                    """,
+                        (
+                            fixture['id'],
+                            goals['home'],
+                            goals['away']
+                        )
+                    )
+
+                    #  Events
+                    for event in events:
+                        self.cursor.execute("""
+                            INSERT INTO events (
+                                            fixture_id,
+                                            time,
+                                            team_id,
+                                            player,
+                                            type,
+                                            detail) VALUES (?, ?, ?, ?, ?, ?)""",
+                            (
+                                fixture['id'],
+                                event['time']['elapsed'],
+                                event['team']['id'] if event['team'] else None,
+                                event['player']['name'] if event['player'] else None,
+                                event['type'],
+                                event['detail']
+                            )
+                        )
+
             self.conn.commit()
+
         except sqlite3.Error as e:
+            self.conn.rollback()
             print(f"Erro ao salvar no banco de dados: {e}")
+
+    def fechar_conexao(self):
+        """Fecha a conexão com o banco de dados."""
+        self.conn.close()
