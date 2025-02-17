@@ -1,11 +1,16 @@
 import sqlite3
-
+import os
 
 class ConnectDB:
 
     def __init__(self, db_name):
         self.conn = sqlite3.connect(db_name, check_same_thread=False)
         self.cursor = self.conn.cursor()
+        self.name = db_name
+        self.tamanho = os.path.getsize(self.name)
+
+    def retorna_tamanho_do_banco(self):
+        print(f"Atual tamanho do banco de dados: {self.tamanho / 1024:.2f} KB")
 
     def criar_tabela_com_campos(self):
         '''
