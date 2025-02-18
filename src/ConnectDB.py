@@ -7,6 +7,7 @@ class ConnectDB:
         self.conn = sqlite3.connect(db_name, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.name = db_name
+        self.tamanho: int = os.path.getsize(self.name)
 
     def retorna_tamanho_do_banco(self):
         self.tamanho = os.path.getsize(self.name)
@@ -124,7 +125,7 @@ class ConnectDB:
                                         venue,
                                         status,
                                         elapsed
-                                        ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""",
+                                        ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
                         (
                             fixture['id'],
                             league['id'],
@@ -138,7 +139,7 @@ class ConnectDB:
 
                     #  Goals
                     self.cursor.execute("""
-                        INSERT INTO goals (fixture_id, home, away) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                        INSERT INTO goals (fixture_id, home, away) VALUES (?, ?, ?)
                     """,
                         (
                             fixture['id'],
@@ -156,7 +157,7 @@ class ConnectDB:
                                             team_id,
                                             player,
                                             type,
-                                            detail) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""",
+                                            detail) VALUES (?, ?, ?, ?, ?, ?)""",
                             (
                                 fixture['id'],
                                 event['time']['elapsed'],
