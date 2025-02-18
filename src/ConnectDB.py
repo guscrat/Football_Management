@@ -7,9 +7,9 @@ class ConnectDB:
         self.conn = sqlite3.connect(db_name, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.name = db_name
-        self.tamanho = os.path.getsize(self.name)
 
     def retorna_tamanho_do_banco(self):
+        self.tamanho = os.path.getsize(self.name)
         print(f"Atual tamanho do banco de dados: {self.tamanho / 1024:.2f} KB")
 
     def criar_tabela_com_campos(self):
@@ -39,7 +39,7 @@ class ConnectDB:
 
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS fixtures (
-                id INTEGER PRIMARY KEY,
+                id INTEGER,
                 league_id INTEGER,
                 home_team_id INTEGER,
                 away_team_id INTEGER,
@@ -47,6 +47,7 @@ class ConnectDB:
                 status TEXT,
                 elapsed INTEGER,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id, timestamp),
                 FOREIGN KEY (league_id) REFERENCES leagues(id),
                 FOREIGN KEY (home_team_id) REFERENCES teams(id),
                 FOREIGN KEY (away_team_id) REFERENCES teams(id)
@@ -115,7 +116,7 @@ class ConnectDB:
 
                     #  Fixture
                     self.cursor.execute("""
-                        INSERT OR IGNORE INTO fixtures (
+                        INSERT INTO fixtures (
                                         id,
                                         league_id,
                                         home_team_id,
@@ -123,7 +124,7 @@ class ConnectDB:
                                         venue,
                                         status,
                                         elapsed
-                                        ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                                        ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""",
                         (
                             fixture['id'],
                             league['id'],
@@ -137,7 +138,7 @@ class ConnectDB:
 
                     #  Goals
                     self.cursor.execute("""
-                        INSERT OR IGNORE INTO goals (fixture_id, home, away) VALUES (?, ?, ?)
+                        INSERT INTO goals (fixture_id, home, away) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
                     """,
                         (
                             fixture['id'],
@@ -155,7 +156,7 @@ class ConnectDB:
                                             team_id,
                                             player,
                                             type,
-                                            detail) VALUES (?, ?, ?, ?, ?, ?)""",
+                                            detail) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""",
                             (
                                 fixture['id'],
                                 event['time']['elapsed'],
