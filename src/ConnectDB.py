@@ -11,7 +11,7 @@ class ConnectDB:
 
     def retorna_tamanho_do_banco(self):
         self.tamanho = os.path.getsize(self.name)
-        print(f"Atual tamanho do banco de dados: {self.tamanho / 1024:.2f} KB")
+        return f"{self.tamanho / 1024:.2f} KB"
 
     def criar_tabela_com_campos(self):
         '''

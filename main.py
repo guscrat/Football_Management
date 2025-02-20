@@ -19,7 +19,7 @@ if __name__ == '__main__':
         print(f"Response number {contador}, return {retorno_api['results']} results ")
         
         connectiondb.coletar_jogos_ao_vivo(retorno_api)
-        print(f"Dados gravados no banco de dados, tamanho atual: {connectiondb.tamanho}")
+        print(f"Dados gravados no banco de dados, tamanho atual: {connectiondb.retorna_tamanho_do_banco()}")
         time.sleep(864)  # 864 sao 100 execucoes em 1 dia
         
         # connectiondb.fechar_conexao()
