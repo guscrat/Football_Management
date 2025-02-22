@@ -15,11 +15,6 @@ logger = logging.getLogger(__name__)
 class ApiJogosConnect:
     """
     Classe para gerenciar conexões e requisições à API de futebol.
-    
-    Attributes:
-        api_key (str): Chave de autenticação para a API
-        base_url (str): URL base para as requisições
-        headers (dict): Cabeçalhos HTTP incluindo a chave de API
     """
 
     def __init__(self, api_key: str, base_url: str, headers: str):
