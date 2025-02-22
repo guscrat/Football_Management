@@ -1,3 +1,6 @@
 env/
 __pycache__/
 others/
+src/__pycache__/
+.env
+futebol_api.log

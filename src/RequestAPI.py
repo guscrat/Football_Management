@@ -1,21 +1,62 @@
-import requests
+"""
+Módulo para gerenciamento de conexões com a API de futebol.
+Fornece funcionalidades para realizar requisições HTTP e processar respostas da API.
+"""
 
+import requests
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 class ApiJogosConnect:
+    """
+    Classe para gerenciar conexões e requisições à API de futebol.
+    
+    Attributes:
+        api_key (str): Chave de autenticação para a API
+        base_url (str): URL base para as requisições
+        headers (dict): Cabeçalhos HTTP incluindo a chave de API
+    """
 
-    def __init__(self, api_key, base_url, headers):
-        self.api_key = api_key  # Chave da API
-        self.base_url = base_url  # URL base da API
-        self.headers = {headers: api_key}  # Cabecalhos HTTP
+    def __init__(self, api_key: str, base_url: str, headers: str):
+        """
+        Inicializa uma nova instância do conector da API.
 
-    def retorna_response_api_jogos(self):
+        Args:
+            api_key (str): Chave de autenticação para a API
+            base_url (str): URL base para as requisições
+            headers (str): Nome do cabeçalho para a chave de API
+
+        Raises:
+            ValueError: Se algum dos parâmetros estiver vazio
+        """
+        if not all([api_key, base_url, headers]):
+            raise ValueError("Todos os parâmetros são obrigatórios")
+
+        self.api_key = api_key
+        self.base_url = base_url
+        self.headers = {headers: api_key}
+
+    def retorna_response_api_jogos(self) -> dict:
+        """
+        Realiza uma requisição para obter dados de jogos ao vivo.
+
+        Returns:
+            dict: Dados dos jogos em formato JSON
+
+        Raises:
+            requests.exceptions.RequestException: Se houver erro na requisição
+        """
         try:
             url = f"{self.base_url}fixtures?live=all"
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
-            dados = response.json()
+            return response.json()
 
         except requests.exceptions.RequestException as e:
-            print(f"Erro ao coletar dados da API: {e}")
-
-        return dados
+            logger.error(f"Erro ao coletar dados da API: {e}")
+            raise

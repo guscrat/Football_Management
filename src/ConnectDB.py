@@ -1,26 +1,59 @@
 import sqlite3
 import os
 
+"""
+Módulo para gerenciamento de conexões com banco de dados SQLite3.
+Responsável por criar e gerenciar tabelas de jogos de futebol, incluindo ligas,
+times, partidas, gols e eventos.
+"""
+
 class ConnectDB:
+    """
+    Classe para gerenciar conexões e operações com banco de dados SQLite3.
+    
+    Attributes:
+        conn (sqlite3.Connection): Conexão com o banco de dados
+        cursor (sqlite3.Cursor): Cursor para executar operações no banco
+        name (str): Nome do arquivo do banco de dados
+        tamanho (int): Tamanho do arquivo do banco de dados em bytes
+    """
 
     def __init__(self, db_name):
+        """
+        Inicializa uma nova conexão com o banco de dados.
+
+        Args:
+            db_name (str): Nome do arquivo do banco de dados SQLite
+        """
         self.conn = sqlite3.connect(db_name, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.name = db_name
         self.tamanho: int = os.path.getsize(self.name)
 
     def retorna_tamanho_do_banco(self):
+        """
+        Calcula e retorna o tamanho atual do banco de dados em KB.
+
+        Returns:
+            str: Tamanho do banco formatado em KB com 2 casas decimais
+        """
         self.tamanho = os.path.getsize(self.name)
         return f"{self.tamanho / 1024:.2f} KB"
 
     def criar_tabela_com_campos(self):
-        '''
-        Cria uma tabela com os campos pre-definidos,
-        se não houver uma tabela com esse nome.
-        Return:
-            arquivo.db
-        '''
-
+        """
+        Cria as tabelas necessárias no banco de dados se não existirem.
+        
+        Tabelas criadas:
+            - leagues: Informações sobre ligas de futebol
+            - teams: Dados dos times
+            - fixtures: Informações sobre partidas
+            - goals: Registro de gols das partidas
+            - events: Eventos ocorridos durante as partidas
+        
+        Returns:
+            None
+        """
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS leagues (
                 id INTEGER PRIMARY KEY,
@@ -82,6 +115,19 @@ class ConnectDB:
         self.conn.commit()
 
     def coletar_jogos_ao_vivo(self, json_jogos):
+        """
+        Insere ou atualiza dados de jogos ao vivo no banco de dados.
+
+        Args:
+            json_jogos (dict): Dicionário contendo dados dos jogos no formato JSON
+                             com informações de liga, times, partida, gols e eventos
+
+        Raises:
+            sqlite3.Error: Em caso de erro na operação com o banco de dados
+        
+        Note:
+            O método realiza rollback automático em caso de erro durante as inserções
+        """
         try:
             if "response" in json_jogos and isinstance(json_jogos["response"], list):
                 for match in json_jogos['response']:
@@ -175,5 +221,8 @@ class ConnectDB:
             print(f"Erro ao salvar no banco de dados: {e}")
 
     def fechar_conexao(self):
-        """Fecha a conexão com o banco de dados."""
+        """
+        Fecha a conexão atual com o banco de dados.
+        Deve ser chamado ao finalizar as operações com o banco.
+        """
         self.conn.close()
