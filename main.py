@@ -19,14 +19,32 @@ from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 
 # Configuração dos logs
-handler = RotatingFileHandler('futebol_api.log', maxBytes=1024*1024, backupCount=5)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-    handlers=[handler, logging.StreamHandler()]
-)
-logger = logging.getLogger(__name__)
+LOG_DIR = 'logs'
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
 
+log_file = os.path.join(LOG_DIR, 'futebol_api.log')
+handler = RotatingFileHandler(
+    log_file,
+    maxBytes=1024*1024,
+    backupCount=5,
+    encoding='utf-8'
+)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
+handler.setFormatter(formatter)
+
+# Configurar o logger root
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(handler)
+
+# Modificar o StreamHandler para incluir data e hora
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)  # Usar o mesmo formatter do arquivo
+root_logger.addHandler(console_handler)
+
+# Configurar loggers específicos
+logger = logging.getLogger(__name__)
 db_logger = logging.getLogger('database')
 api_logger = logging.getLogger('api')
 

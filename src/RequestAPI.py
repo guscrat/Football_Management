@@ -4,13 +4,7 @@ Fornece funcionalidades para realizar requisições HTTP e processar respostas d
 """
 
 import requests
-import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 class ApiJogosConnect:
     """
@@ -53,5 +47,4 @@ class ApiJogosConnect:
             return response.json()
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Erro ao coletar dados da API: {e}")
             raise
