@@ -1,0 +1,7 @@
+env/
+others/
+futebol.db
+logs/
+__pycache__/
+conn_test.py
+dashboard.py

@@ -5,3 +5,4 @@ src/__pycache__/
 .env
 futebol_api.log
 futebol.db
+README.md

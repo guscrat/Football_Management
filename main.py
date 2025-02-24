@@ -10,47 +10,28 @@ Características principais:
 - Execução contínua com tratamento de erros
 """
 
+import os
+import sys
+import time
+import logging
+import boto3
 from src.ConnectDB import ConnectDB
 from src.RequestAPI import ApiJogosConnect
-import time
-import os
-import logging
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
+from datetime import datetime
+from src.Logger import Logger
+from src.ConnectS3 import ConnectS3
 
-# Configuração dos logs
-LOG_DIR = 'logs'
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
-
-log_file = os.path.join(LOG_DIR, 'futebol_api.log')
-handler = RotatingFileHandler(
-    log_file,
-    maxBytes=1024*1024,
-    backupCount=5,
-    encoding='utf-8'
-)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
-handler.setFormatter(formatter)
-
-# Configurar o logger root
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.addHandler(handler)
-
-# Modificar o StreamHandler para incluir data e hora
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(formatter)  # Usar o mesmo formatter do arquivo
-root_logger.addHandler(console_handler)
 
 # Configurar loggers específicos
-logger = logging.getLogger(__name__)
-db_logger = logging.getLogger('database')
-api_logger = logging.getLogger('api')
+
 
 # Constantes
 SLEEP_TIME = 864  # 100 execuções em 1 dia
 DB_NAME = 'futebol.db'
+BUCKET_NAME = 'seu-bucket-name'
+S3_FOLDER = 'database-backups'
 
 if __name__ == '__main__':
     # Carrega variáveis de ambiente
@@ -58,7 +39,12 @@ if __name__ == '__main__':
     API_KEY = os.getenv('API_KEY')
 
     try:
+        logger = Logger('app_logger').get_logger()
+        db_logger = Logger('db_logger').get_logger()
+        api_logger = Logger('api_logger').get_logger()
+        s3_logger = Logger('s3_logger').get_logger()
         connectiondb = ConnectDB(db_name=DB_NAME)
+        connects3 = ConnectS3()  # Instanciar a classe ConnectS3
         connectiondb.criar_tabela_com_campos()
         db_logger.info("Conexão com banco de dados estabelecida com sucesso")
 
@@ -72,20 +58,33 @@ if __name__ == '__main__':
         contador = 0
         while True:
             try:
-                contador += 1
-                retorno_api: dict = connection_api.retorna_response_api_jogos()
-                api_logger.info(f"Response number {contador}, return {retorno_api['results']} results")
+                retorno_api = connection_api.retorna_response_api_jogos()
+                if retorno_api:
+                    api_logger.info(f"API retornou {retorno_api['results']} jogos ao vivo")
+                    connectiondb.coletar_jogos_ao_vivo(retorno_api)
+                    db_logger.info(f"Dados gravados no banco de dados, tamanho atual: {connectiondb.retorna_tamanho_do_banco()}")
+                    
+                    # if contador % 10 == 0:
+                    #     if connects3.upload_to_s3(DB_NAME, BUCKET_NAME, S3_FOLDER):
+                    #         logger.info("Backup para S3 realizado com sucesso")
+                    #     else:
+                    #         logger.warning("Falha ao realizar backup para S3")
+                else:
+                    api_logger.warning("API não retornou dados de jogos ao vivo")
                 
-                connectiondb.coletar_jogos_ao_vivo(retorno_api)
-                db_logger.info(f"Dados gravados no banco de dados, tamanho atual: {connectiondb.retorna_tamanho_do_banco()}")
                 time.sleep(SLEEP_TIME)
+                contador += 1
                 
             except Exception as e:
-                api_logger.error(f"Erro durante a execução: {str(e)}", exc_info=True)
-                time.sleep(60)  # Espera 1 minuto antes de tentar novamente
+                api_logger.error(f"Erro ao processar dados da API: {str(e)}", exc_info=True)
+                time.sleep(SLEEP_TIME)
                 
+    except KeyboardInterrupt:
+        logger.info("Aplicação encerrada pelo usuário")
+        sys.exit(0)
     except Exception as e:
-        api_logger.critical(f"Erro fatal: {str(e)}", exc_info=True)
+        logger.critical(f"Erro crítico na aplicação: {str(e)}", exc_info=True)
+        sys.exit(1)
     finally:
         connectiondb.fechar_conexao()
         db_logger.info("Conexão com banco de dados fechada")
