@@ -13,30 +13,21 @@ Características principais:
 import os
 import sys
 import time
-import logging
-import boto3
 from src.ConnectDB import ConnectDB
 from src.RequestAPI import ApiJogosConnect
-from dotenv import load_dotenv
-from logging.handlers import RotatingFileHandler
-from datetime import datetime
 from src.Logger import Logger
 from src.ConnectS3 import ConnectS3
+from dotenv import load_dotenv
 
-
-# Configurar loggers específicos
-
-
-# Constantes
-SLEEP_TIME = 864  # 100 execuções em 1 dia
-DB_NAME = 'futebol.db'
-BUCKET_NAME = 'seu-bucket-name'
-S3_FOLDER = 'database-backups'
 
 if __name__ == '__main__':
     # Carrega variáveis de ambiente
     load_dotenv()
     API_KEY = os.getenv('API_KEY')
+    SLEEP_TIME = int(os.getenv('SLEEP_TIME'))
+    DB_NAME = str(os.getenv('DB_NAME'))
+    BUCKET_NAME = os.getenv('BUCKET_NAME')
+    S3_FOLDER = os.getenv('S3_FOLDER')
 
     try:
         logger = Logger('app_logger').get_logger()
@@ -64,11 +55,11 @@ if __name__ == '__main__':
                     connectiondb.coletar_jogos_ao_vivo(retorno_api)
                     db_logger.info(f"Dados gravados no banco de dados, tamanho atual: {connectiondb.retorna_tamanho_do_banco()}")
                     
-                    # if contador % 10 == 0:
-                    #     if connects3.upload_to_s3(DB_NAME, BUCKET_NAME, S3_FOLDER):
-                    #         logger.info("Backup para S3 realizado com sucesso")
-                    #     else:
-                    #         logger.warning("Falha ao realizar backup para S3")
+                    if contador % 10 == 0:
+                        if connects3.upload_to_s3(DB_NAME, BUCKET_NAME, S3_FOLDER):
+                            logger.info("Backup para S3 realizado com sucesso")
+                        else:
+                            logger.warning("Falha ao realizar backup para S3")
                 else:
                     api_logger.warning("API não retornou dados de jogos ao vivo")
                 
