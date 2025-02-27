@@ -34,10 +34,12 @@ if __name__ == '__main__':
         db_logger = Logger('db_logger').get_logger()
         api_logger = Logger('api_logger').get_logger()
         s3_logger = Logger('s3_logger').get_logger()
+
         connectiondb = ConnectDB(db_name=DB_NAME)
-        connects3 = ConnectS3()  # Instanciar a classe ConnectS3
-        connectiondb.criar_tabela_com_campos()
         db_logger.info("Conexão com banco de dados estabelecida com sucesso")
+        connectiondb.criar_tabela_com_campos()
+        
+        connects3 = ConnectS3()
 
         connection_api = ApiJogosConnect(
             api_key=API_KEY,
@@ -50,18 +52,19 @@ if __name__ == '__main__':
         while True:
             try:
                 retorno_api = connection_api.retorna_response_api_jogos()
-                if retorno_api:
-                    api_logger.info(f"API retornou {retorno_api['results']} jogos ao vivo")
+                if not retorno_api:
+                    api_logger.warning("API não retornou dados de jogos ao vivo")
+                else:
+                    api_logger.info(f"API retornou {retorno_api['results']} jogos")
                     connectiondb.coletar_jogos_ao_vivo(retorno_api)
                     db_logger.info(f"Dados gravados no banco de dados, tamanho atual: {connectiondb.retorna_tamanho_do_banco()}")
                     
+                    #  Ingesta na camada bronze a cada 10 execuções
                     if contador % 10 == 0:
                         if connects3.upload_to_s3(DB_NAME, BUCKET_NAME, S3_FOLDER):
                             logger.info("Backup para S3 realizado com sucesso")
                         else:
                             logger.warning("Falha ao realizar backup para S3")
-                else:
-                    api_logger.warning("API não retornou dados de jogos ao vivo")
                 
                 time.sleep(SLEEP_TIME)
                 contador += 1

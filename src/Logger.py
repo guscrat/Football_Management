@@ -2,6 +2,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
+
 class Logger:
     def __init__(self, logger_name: str):
         # Definir o diretório de logs como constante da classe
@@ -33,6 +34,3 @@ class Logger:
         """
         if not os.path.exists(self.LOG_DIR):
             os.makedirs(self.LOG_DIR)
-
-    def get_logger(self):
-        return self.logger
